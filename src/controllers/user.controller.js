@@ -1,3 +1,4 @@
+
 import UserService from '../services/user.service.js';
 
 export default class UserController {
@@ -9,4 +10,14 @@ export default class UserController {
       next(err);
     }
   }
+
+  static async updateUserLocation(req, res, next) {
+    try {
+      const user = await UserService.updateUserLocation(req.user.id, req.body);
+      res.json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
+

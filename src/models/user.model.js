@@ -1,3 +1,4 @@
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -31,6 +32,17 @@ const userSchema = new mongoose.Schema({
     enum: ['seeker', 'giver', 'both'],
     default: 'seeker',
   },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number],
+      default: [0, 0],
+    },
+  },
   isEmailVerified: {
     type: Boolean,
     default: false,
@@ -52,6 +64,9 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
 }, { timestamps: true });
+
+// Create 2dsphere index for location
+userSchema.index({ location: '2dsphere' });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -89,3 +104,4 @@ userSchema.methods.generateOtp = function () {
 };
 
 export default mongoose.model('User', userSchema);
+

@@ -1,14 +1,16 @@
 
 import { Router } from 'express';
 import AuthController from '../controllers/auth.controller.js';
+import validationMiddleware from '../middlewares/validation.middleware.js';
+import { signupSchema, verifyOtpSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../schemas/auth.schema.js';
 
 export const authRouter = Router();
 
-authRouter.post('/signup', AuthController.signup);
-authRouter.post('/verify-otp', AuthController.verifyOtp);
-authRouter.post('/login', AuthController.login);
-authRouter.post('/forgot-password', AuthController.forgotPassword);
-authRouter.post('/reset-password', AuthController.resetPassword);
+authRouter.post('/signup', validationMiddleware(signupSchema), AuthController.signup);
+authRouter.post('/verify-otp', validationMiddleware(verifyOtpSchema), AuthController.verifyOtp);
+authRouter.post('/login', validationMiddleware(loginSchema), AuthController.login);
+authRouter.post('/forgot-password', validationMiddleware(forgotPasswordSchema), AuthController.forgotPassword);
+authRouter.post('/reset-password', validationMiddleware(resetPasswordSchema), AuthController.resetPassword);
 
 
 
