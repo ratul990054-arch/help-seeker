@@ -32,6 +32,18 @@ const userSchema = new mongoose.Schema({
     enum: ['seeker', 'giver', 'both'],
     default: 'seeker',
   },
+  isAvailable: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  helpRadius: {
+    type: Number,
+    default: 2000, // in meters
+  },
+  fcmToken: {
+    type: String,
+  },
   location: {
     type: {
       type: String,

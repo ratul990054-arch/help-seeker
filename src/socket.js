@@ -1,97 +1,58 @@
-import { Server as SocketIOServer } from "socket.io";
-import jwt from "jsonwebtoken";
-import AppointmentService from "./services/appointment.service.js";
-import NotificationService from "./services/notification.service.js";
-import AppError from "./utils/appError.js";
+import { Server as SocketIOServer } from 'socket.io';
+import jwt from 'jsonwebtoken';
+import UserService from './services/user.service.js';
 
-// userId -> socketId ম্যাপ সংরক্ষণ করার জন্য
 const userSocketMap = new Map();
 
 let io;
 
-// ✅ Socket Authentication Middleware
 const authenticateSocket = (socket, next) => {
   const token = socket.handshake.headers.token;
-  console.log("Authenticating socket with token:", token);
-
   if (token) {
     try {
-      const decoded = jwt.verify(
-        token,
-        process.env.ACCESS_TOKEN_SECRET || "defaultsecret"
-      );
-      if (decoded._id) {
-        socket.userId = decoded._id.toString();
-        return next();
-      } else {
-        return next(new Error("Authentication failed: Invalid token."));
-      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.userId = decoded.id;
+      return next();
     } catch (error) {
-      return next(new Error("Authentication failed: Invalid token."));
+      return next(new Error('Authentication failed: Invalid token.'));
     }
   }
-
-  // 10 সেকেন্ডে authenticate না হলে disconnect করে দিবে
-  setTimeout(() => {
-    if (!socket.userId) {
-      console.log(`Socket ${socket.id} did not authenticate in time.`);
-      socket.disconnect();
-    }
-  }, 10000);
-
-  next();
+  return next(new Error('Authentication failed: No token provided.'));
 };
 
-// ✅ Initialize Socket.io Server
 export const initSocket = (server) => {
   io = new SocketIOServer(server, {
     cors: {
-      origin: "http://127.0.0.1:5500",
-      methods: ["GET", "POST"],
+      origin: '*', // Allow all origins for now
+      methods: ['GET', 'POST'],
     },
   });
 
   io.use(authenticateSocket);
 
-  io.on("connection", (socket) => {
+  io.on('connection', (socket) => {
     const userId = socket.userId;
     if (userId) {
       console.log(`Socket connected: ${socket.id} for user ${userId}`);
       userSocketMap.set(userId, socket.id);
     }
 
-    //📍 User location event
-    socket.on("sendLocation", async (data) => {
+    socket.on('updateLocation', async (data) => {
       const userId = socket.userId;
-      console.log(`Received location from user ${userId}:`, data);
-      if (!userId) return;
+      if (!userId || !data.lat || !data.lng) {
+        // Here you could emit an error back to the client
+        return;
+      }
 
       try {
-        await AppointmentService.getAppointmentDetails(
-          data.appointmentId,
-          userId
-        );
-        await AppointmentService.automaticCheckIn(
-          data.appointmentId,
-          userId,
-          data.lat,
-          data.lng
-        );
+        await UserService.updateUserLocation(userId, data.lat, data.lng);
       } catch (error) {
-        if (error instanceof AppError && error.statusCode === 404) {
-          socket.emit("error", {
-            message: "Not authorized: This is not your appointment",
-          });
-        } else {
-          console.error("Error in sendLocation:", error);
-        }
+        console.error('Error in updateLocation:', error);
+        // Here you could emit an error back to the client
       }
     });
 
-
-
-    // 🔌 Disconnect handler
-    socket.on("disconnect", () => {
+    socket.on('disconnect', () => {
       const userId = socket.userId;
       if (userId) {
         console.log(`Socket disconnected: ${socket.id}`);
@@ -103,25 +64,19 @@ export const initSocket = (server) => {
   return io;
 };
 
-// ✅ Get io instance
 export const getIO = () => {
   if (!io) {
-    throw new Error("Socket.io not initialized!");
+    throw new Error('Socket.io not initialized!');
   }
   return io;
 };
 
-// ✅ Emit to specific user
 export const emitToUser = (userId, event, data) => {
   const socketId = userSocketMap.get(userId.toString());
   if (socketId) {
     getIO().to(socketId).emit(event, data);
-    console.log(`Emitted '${event}' to user ${userId} on socket ${socketId}`);
     return true;
   } else {
-    console.log(
-      `Could not find socket for user ${userId} to emit event '${event}'`
-    );
     return false;
   }
 };

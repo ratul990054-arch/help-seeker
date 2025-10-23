@@ -5,7 +5,7 @@ import { sendEmail } from '../utils/sendEmail.js';
 import crypto from 'crypto';
 
 export default class AuthService {
-  static async signup({ fullname, email, phonenumber, password, role }) {
+  static async signup({ fullname, email, phonenumber, password, role = 'seeker' }) {
     const existingUser = await UserRepository.findByEmail(email);
     if (existingUser) {
       throw new AppError('User with this email already exists', 400);

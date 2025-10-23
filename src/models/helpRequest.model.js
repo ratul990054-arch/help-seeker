@@ -1,15 +1,10 @@
-
 import mongoose from 'mongoose';
 
 const helpRequestSchema = new mongoose.Schema({
-  seeker: {
+  requester: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-  },
-  giver: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
   },
   location: {
     type: {
@@ -22,21 +17,22 @@ const helpRequestSchema = new mongoose.Schema({
       required: true,
     },
   },
-  nearbyGivers: [{
+  radius: {
+    type: Number,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ['active', 'completed', 'cancelled'],
+    default: 'active',
+  },
+  acceptedHelpers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   }],
-  status: {
-    type: String,
-    enum: ['pending', 'accepted', 'completed'],
-    default: 'pending',
-  },
   createdAt: {
     type: Date,
     default: Date.now,
-  },
-  completedAt: {
-    type: Date,
   },
 });
 
